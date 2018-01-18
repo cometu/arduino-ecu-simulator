@@ -7,11 +7,14 @@
 
 INT32U canId = 0x000;
 
+typedef unsigned char uint8_t;
+typedef char int8_t;
+
 //2024   4   65   12   18   248   185   147
  
 
-unsigned char len = 0;
-unsigned char buf[8];
+uint8_t len = 0;
+uint8_t buf[8];
 char str[20];
 
 String BuildMessage="";
@@ -39,30 +42,19 @@ START_INIT:
 
 void loop()
 {
-    char rndCoolantTemp=random(1,200);
-    char rndRPM=random(1,55);
-    char rndSpeed=random(0,255);
-    char rndIAT=random(0,255);
-    char rndMAF=random(0,255);
-    char rndAmbientAirTemp=random(0,200);
-    char rndCAT1Temp=random(1,55);
+    int8_t rpm=random(1,55);
+    int8_t speed=random(0,255);
+    int8_t load=random(1,55);
     
     //GENERAL ROUTINE
-    unsigned char SupportedPID[8] =       {1,2,3,4,5,6,7,8};
-    unsigned char MilCleared[7] =         {4, 65, 63, 34, 224, 185, 147}; 
+    uint8_t SupportedPID[1] =       {1};
+    uint8_t MilCleared[7] =         {4, 65, 63, 34, 224, 185, 147}; 
     
     //SENSORS
-    unsigned char CoolantTemp[7] =        {4, 65, 5, rndCoolantTemp, 0, 185, 147};  
-    unsigned char rpm[7] =                {4, 65, 12, rndRPM, 224, 185, 147};
-    unsigned char vspeed[7] =             {4, 65, 13, rndSpeed, 224, 185, 147};
-    unsigned char IATSensor[7] =          {4, 65, 15, rndIAT, 0, 185, 147};
-    unsigned char MAFSensor[7] =          {4, 65, 16, rndMAF, 0, 185, 147};
-    unsigned char AmbientAirTemp[7] =     {4, 65, 70, rndAmbientAirTemp, 0, 185, 147};
-    unsigned char CAT1Temp[7] =           {4, 65, 60, rndCAT1Temp, 224, 185, 147};
-    unsigned char CAT2Temp[7] =           {4, 65, 61, rndCAT1Temp, 224, 185, 147};
-    unsigned char CAT3Temp[7] =           {4, 65, 62, rndCAT1Temp, 224, 185, 147};
-    unsigned char CAT4Temp[7] =           {4, 65, 63, rndCAT1Temp, 224, 185, 147};
-    
+    uint8_t rpmFrame[7] =                {0x04, 0x40 & 0x01, 0x0C, rpm1, rpm2, 0, 0};
+    uint8_t speedFrame[7] =             {0x04, 0x40 & 0x01, 0x0D, speed, 0, 0, 0};
+    uint8_t loadFrame[7] =             {0x04, 0x40 & 0x01, 0x04, load, 0, 0, 0};
+
     if(CAN_MSGAVAIL == CAN.checkReceive())  
     {
       
@@ -75,28 +67,35 @@ void loop()
           BuildMessage = BuildMessage + buf[i] + ",";
         }
         Serial.println(BuildMessage);
-        
-        //Check wich message was received.
-        if(BuildMessage=="2,1,0,0,0,0,0,0,") {CAN.sendMsgBuf(0x7E8, 0, 8, SupportedPID);}
-        if(BuildMessage=="2,1,1,0,0,0,0,0,") {CAN.sendMsgBuf(0x7E8, 0, 7, MilCleared);}
-        
-        //SEND SENSOR STATUSES
-        if(BuildMessage=="2,1,5,0,0,0,0,0,") {CAN.sendMsgBuf(0x7E8, 0, 7, CoolantTemp);}
-        if(BuildMessage=="2,1,12,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, rpm);}
-        if(BuildMessage=="2,1,13,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, vspeed);}
-        if(BuildMessage=="2,1,15,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, IATSensor);}
-        if(BuildMessage=="2,1,16,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, MAFSensor);}
-        if(BuildMessage=="2,1,70,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, AmbientAirTemp);}
-        if(BuildMessage=="2,1,60,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, CAT1Temp);}
-        if(BuildMessage=="2,1,61,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, CAT2Temp);}
-        if(BuildMessage=="2,1,62,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, CAT3Temp);}
-        if(BuildMessage=="2,1,63,0,0,0,0,0,"){CAN.sendMsgBuf(0x7E8, 0, 7, CAT4Temp);}
 
-        BuildMessage="";
+        uint8_t len = buf[1];
+        uint8_t mode = buf[1];
+        uint8_t pid = buf[2];
 
-        
 
+        if ( mode == 0x02)
+        {
+            switch ( pid ) 
+            {
+                case 0x01:
+                    CAN.sendMsgBuf(0x7E8, 0, 1, SupportedPID);
+                  break;
+                case 0x04:
+                  CAN.sendMsgBuf(0x7E8, 0, 7, loadFrame);
+                  break;
+                case 0x0C:
+                    CAN.sendMsgBuf(0x7E8, 0, 7, rpmFrame);
+                    break;
+                case 0x0D:
+                    CAN.sendMsgBuf(0x7E8, 0, 7, speedFrame);
+                    break;
+                default:
+                  // do something
+            }
+        }
+        else if ( mode == 0x09 )
+        {
+            
+        }
     }
-    
-
 }
