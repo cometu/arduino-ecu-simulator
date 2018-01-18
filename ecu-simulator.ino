@@ -3,8 +3,6 @@
 #include <SPI.h>
 #include "mcp_can.h"
 
-
-
 INT32U canId = 0x000;
 
 typedef unsigned char uint8_t;
@@ -58,20 +56,12 @@ void loop()
     if(CAN_MSGAVAIL == CAN.checkReceive())  
     {
       
-      CAN.readMsgBuf(&len, buf); 
+        CAN.readMsgBuf(&len, buf); 
         canId = CAN.getCanId();
-        Serial.print("<");Serial.print(canId);Serial.print(",");
-
-        for(int i = 0; i<len; i++)
-        {  
-          BuildMessage = BuildMessage + buf[i] + ",";
-        }
-        Serial.println(BuildMessage);
 
         uint8_t len = buf[1];
         uint8_t mode = buf[1];
         uint8_t pid = buf[2];
-
 
         if ( mode == 0x02)
         {
